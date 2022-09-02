@@ -1,0 +1,114 @@
+\section{Příklad 5}
+% Jako parametr zadejte skupinu (A-H)
+\patyZadani{G}
+
+\subsection{Sestavení diferenciální rovnice}
+
+Sestavíme rovnici pro napětí na kondenzátoru U'\textsubscript{C}:
+\begin{align*}
+	U'_C &= \dfrac{i}{C}
+\end{align*}
+
+
+Napětí na kondenzátoru si můžeme vyjádřit pomocí 2. Kirchhoffova zákona:
+
+\begin{align*}
+	U &= U_R + U_C\\
+	U_C &= U-U_R\\
+	i &= \dfrac{U_R}{R}
+\end{align*}
+
+
+Vzniklou diferenciální rovnici upravíme:
+
+\begin{align*}
+	U'_C &= \dfrac{U_R}{R * C} \\
+	U'_C &= \dfrac{U - U_C}{R*C} \\
+\end{align*}
+
+Obyčejní diff. rovnice: 
+
+\begin{align*}
+	U'_C + \dfrac{U - U_C}{R*C}  &= 0 \\
+	R*C*U'_C + U - U_C &= 0 \\
+	1250 * U'_C + 10 - U_C &= 0 \\
+	1250 * U'_C - U_C &= -10 \\
+\end{align*}
+
+\begin{align*}
+	U_C(t)=K(t) * e^{\lambda * t}
+\end{align*}
+
+
+\begin{align*}
+	1250\lambda - 1 = 0 \\
+	1250\lambda  = 1 \\
+	\lambda = \dfrac{1}{1250} = 0.0008
+\end{align*}
+
+
+\begin{align*}
+	U_C(t) &= K(t) * e^{\lambda * t}\\
+	U_C(t) &= K(t) * e^{0.0008 * t}\\
+	U_C(t)' &= K(t)' * e^{0.0008 * t} + 0.0008 * K(t) * e^{0.0008 * t}\\
+\end{align*}
+
+Dosadíme do naší diferenciální rovnice: 
+\begin{quote}
+    \centering
+    $1250(K(t)' * e^{0.0008 * t} + 0.0008 * K(t) * e^{0.0008 * t}) - K(t) * e^{0.0008 * t} = -10$ \\ 
+    \medskip
+    $1250K(t)' * e^{0.0008 * t} + K(t) * e^{0.0008 * t} - K(t) * e^{0.0008 * t} = -10$ \\
+    \medskip
+     $1250K(t)' * e^{0.0008 * t} = -10$ \\
+     \medskip
+     $K(t)' * e^{0.0008 * t} = \dfrac{-10}{1250}$  \\ 
+     \medskip
+     $K(t)' * e^{0.0008 * t} = \dfrac{-1}{125}$  \\ 
+     \medskip
+     $K(t)' = \dfrac{-1}{125} *  e^{-0.0008 * t}$  \\ 
+\end{quote}
+
+Máme $K(t)$. Musíme ještě zintegrovat:
+\begin{align*}
+	K(t) &= \int \dfrac{-1}{125} * e^{-0.0008 * t} dt \\
+	K(t) &=\dfrac{10}{e^{0.0008 * t}} + C
+\end{align*}
+
+
+Nyní už máme co potřebujeme. Dosadíme do analytické rovnice:
+\begin{align*}
+		U_C(t) &= K(t) * e^{\lambda * t}\\
+		U_C(t) &= (\dfrac{10}{e^{0.0008 * t}} + C) * e^{0.0008 * t}\\
+		U_C(t) &= 10 + C * e^{0.0008 * t}\\
+\end{align*}
+
+Vypočítáme C dle počáteční podmínky v čase $t = 0$:
+\begin{quote}
+    \centering
+    $U_c(0) = 10 + C * e^{0.0008 * 0}$ \\
+	$7 = 10 + C$ \\
+	$C = -3$
+	
+\end{quote}
+
+Konečná rovnice má tento tvar:
+\begin{align*}
+	U_C(t) &= 10 + (-3) * e^{0.0008 * t}\\
+\end{align*}
+
+\subsection{Kontrola}
+	
+\begin{align*}
+	U_C(t)' &= (\dfrac{-1}{125} * e^{-0.0008 * t} ) * e^{0.0008 * t} + 0.0008 * (\dfrac{10}{e^{0.0008 * t}} - 3) * e^{0.0008 * t} \\
+	U_C(t) &= 10 + (-3) * e^{0.0008 * t}\\
+\end{align*}
+
+\begin{align*}
+	1250 * U'_C - U_C &= -10 \\
+	1250 * ((\dfrac{-1}{125} * e^{-0.0008 * t} ) * e^{0.0008 * t} + 0.0008 * (\dfrac{10}{e^{0.0008 * t}} - 3) * e^{0.0008 * t}) - (10 + (-3) * e^{0.0008 * t}) &= -10 \\ 
+	1250 * (\dfrac{-1}{125} + \dfrac{1}{125} - \dfrac{3}{1250} * e^{0.0008 * t}) - (10 + (-3) * e^{0.0008 * t}) &= -10 \\ 
+	1250 * (- \dfrac{3}{1250} * e^{0.0008 * t}) - (10 + (-3) * e^{0.0008 * t}) &= -10 \\
+	-3*e^{0.0008 * t} - 10 + 3*e^{0.0008 * t}   = -10 \\
+	-10 = -10
+\end{align*}
