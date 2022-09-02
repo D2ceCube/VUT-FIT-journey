@@ -1,0 +1,464 @@
+#!/bin/bash
+
+export POSIXLY_CORRECT=yes
+export LC_NUMERIC=en_US.UTF-8
+
+# 6) -s filter function
+# 7) troubleshooting
+# 8) Checkni 4e ewe tam nado sdelat' vrode uje vse gotovo i mojno uje eto sdavat'. Glavnoe nujno udostoveritsya v PRAVILNOI posledovatelnosti vypolneniya programy
+
+#### Variables
+invalidData=""
+COMMAND=""
+DATEAFTER=""
+DATEBEFORE=""
+GENDER=""
+WIDTH=""
+CSV_FILE=""
+GZiP_CSV_FILE=""
+BZIP_CSV_FILE=""
+#### End of declaring Variables
+
+#### Flags
+aFlag=false
+bFlag=false
+gFlag=false
+sFlag=false
+COMMANDFLAG=false
+csvFlag=false
+gzipFlag=false
+bzipFlag=false
+#### End of declaring Flags
+
+#### Functions
+print_help() {
+	echo ""
+	echo -e "Usage: \n\tcorona [FILTERS] [COMMAND] [LOG [LOG2 [...]]"
+	echo -e "\tcorona [-h]"
+	echo ""
+	echo "COMMAND = {infected, merge, gender, age, daily, monthly, yearly, countries, districts, regions}"
+	echo -e "\nFILTERS: "
+	echo -e "\t -a DATETIME --- after"
+	echo -e "\t -b DATETIME --- before"
+	echo -e "\t -g GENDER"
+	echo -e "\t -s [WIDTH]"
+}
+
+getInvalidData() {
+	findInvalidData=$(echo "$READ_INPUT" | awk -F ',' '{ \
+		if (NR > 1 && $1 != "id") { \
+			 if ( $2 !~ /[0-9]{4}-[0-9]{2}-[0-9]{2}|^$/ ) { \
+				printf("Invalid date: %s\n", $0) \
+			 } \
+			 if ($3 !~ /[0-9]{1,3}/ || $3 < "0" || $3 % 1 != 0 ) { \
+				if ($3 !~ /^$/) { \
+					printf("Invalid age: %s\n", $0) \
+				} \
+			} \
+		} \
+		}')
+	invalidData=$findInvalidData
+	
+	out=$(echo "$READ_INPUT" | awk -F ',' '{\
+		if (NR > 0) { \
+			if ($1 ~ /id/) { print $0 } \
+			if ( ($2 ~ /[0-9]{4}-[0-9]{2}-[0-9]{2}|^$/) && ( $3 ~ /[0-9]{1,3}|^$/)) { \
+					if ($3 ~ /^$/) { print $0} \
+					else if (($3 >= 0) && ($3 % 1 == 0 )) {print $0} \
+				} \
+			} \
+		}')
+	READ_INPUT=$out
+}
+
+extractFile() {
+	if [ $csvFlag == true ]
+	then
+		READ_INPUT="$(cat $CSV_FILE)"
+	else
+		:		
+	fi	
+	if [ $gzipFlag == true ]
+	then
+		out=$(gunzip -d -c $GZIP_CSV_FILE)
+		READ_INPUT="${READ_INPUT}$out"
+	else
+		:
+	fi
+	if [ $bzipFlag == true ]
+	then
+		out=$(bzip2 -d -c $BZIP_CSV_FILE)
+		READ_INPUT="${READ_INPUT}$out"
+	else
+		:
+	fi
+	if [ $csvFlag == false ] && [ $gzipFlag == false ] && [ $bzipFlag == false ];
+	then
+		READ_INPUT=$(cat)
+	else
+		:
+	fi
+}
+
+afterDate_Function() {
+	date=$DATEAFTER
+	out=$(echo "$READ_INPUT" | \
+		awk  \
+		-F ',' \
+		-v dateval="$date" \
+		'{
+			if ($2 >= dateval) {
+				print $0
+			}
+		}')
+	READ_INPUT=$out
+}
+
+beforeDate_Function() {
+	date=$DATEBEFORE
+	out=$(echo "$READ_INPUT" | \
+		awk \
+		-F ',' \
+		-v dateval="$date" \
+		'{
+			if ($1 ~ /id/) { print $0 }
+			if ($2 <= dateval) {
+				print $0
+			}
+		}')
+	READ_INPUT=$out
+}
+
+genderFilter_Function() {
+	gend=$GENDER
+	out=$(echo "$READ_INPUT" | \
+		awk \
+		-F ',' \
+		-v genval="$gend" \
+		'{
+			if ($1 ~ /id/) {
+				print $0
+			}
+			if ($4 == genval) {
+				print $0
+			}
+		 }')
+		READ_INPUT=$out
+}
+
+sWidth_Function() {
+	echo -e "\n-s function called\n"
+}
+
+merge_Function() {
+	out=$(echo "$READ_INPUT" | awk '!x[$0]++')
+	READ_INPUT=$out	
+
+}
+
+age_Function() {
+	out=$(echo "$READ_INPUT" | awk -F ',' -v zeroFiv=0 \
+                        -v sixFif=0 \
+                        -v sixTwen=0 \
+                        -v twenThir=0 \
+                        -v thirFor=0 \
+                        -v forFif=0 \
+                        -v fifSix=0 \
+                        -v sixSev=0 \
+                        -v sevEig=0 \
+                        -v eigNin=0 \
+                        -v ninHun=0 \
+                        -v hunBig=0 \
+			-v None=0 \
+				'{ if($3 >= 0 && $3 <= 5) { zeroFiv+=1 }
+                                else if($3 >= 6 && $3 <= 15) {sixFif+=1}
+                                else if($3 >= 16 && $3 <= 25) {sixTwen+=1}
+                                else if($3 >= 26 && $3 <= 35) {twenThir+=1}
+                                else if($3 >= 36 && $3 <= 45) {thirFor+=1}
+                                else if($3 >= 46 && $3 <= 55) {forFif+=1}
+                                else if($3 >= 56 && $3 <= 65) {fifSix+=1}
+                                else if($3 >= 66 && $3 <= 75) {sixSev+=1}
+                                else if($3 >= 76 && $3 <= 85) {sevEig+=1}
+                                else if($3 >= 86 && $3 <= 95) {eigNin+=1}
+                                else if($3 >= 96 && $3 <=105) {ninHun+=1}
+                                else if($3 > 105 && $3 !~ /vek/) {hunBig+=1}
+				else if($3 ~ /^$/) {None+=1}
+			} END { 
+				printf("0-5\t: %d\n", zeroFiv) 
+				printf("6-15\t: %d\n",sixFif)
+				printf("16-25\t: %d\n",sixTwen)
+				printf("26-35\t: %d\n", twenThir)
+				printf("36-45\t: %d\n", thirFor)
+				printf("46-55\t: %d\n", forFif)
+				printf("56-65\t: %d\n",fifSix)
+				printf("66-75\t: %d\n",sixSev)
+                                printf("76-85\t: %d\n", sevEig)
+                                printf("86-95\t: %d\n", eigNin)
+                                printf("96-105\t: %d\n",ninHun)
+                                printf(">105\t: %d\n",hunBig)
+				if(None >= 1) { printf("None\t: %d\n", None)}
+			}')
+	echo "$out"
+	>&2 echo "$invalidData"
+	exit 0
+}
+
+gender_Function() {
+	out=$(echo "$READ_INPUT" | awk -F ',' -v Mc=0 -v Zc=0 -v None=0 '{ if($4=="M") {Mc+=1} else if($4=="Z") {Zc+=1} else if($4 ~/^$/) {None+=1}} END { printf("M: %d\nZ: %d\n",Mc,Zc); if (None>=1) {printf("None: %d\n",None)} }')
+	echo "$out"
+	>&2 echo "$invalidData"
+	exit 0
+}
+
+# Mojno izmenit, podumai golovoi, nujna li tut merge function? Maybe prosto sort uniq ? 
+infected_Function() {
+	#merge_Function
+	out=$(echo "$READ_INPUT" | sort | uniq | wc -l) # or prosto ubrat sort and uniq i vernut function merge
+	echo $(($out - 1))
+	>&2 echo "$invalidData"
+	exit 0
+}
+
+daily_Function() {
+	out=$(echo "$READ_INPUT" | awk -F, '{if ($2 !~ /datum/) {print $2}}' | sort | uniq -c | awk -F " " -v None="" '{if($2 ~ /^$/)
+                                                                                                                           {None=$1}
+                                                                                                                        else
+                                                                                                                           {print $2 ": " $1} } END { if(None>=1) {print "None: " None} }')
+	echo "$out"
+	>&2 echo "$invalidData"
+	exit 0
+}
+
+monthly_Function() {
+	out=$(echo "$READ_INPUT" | awk -F, '{if ($2 !~ /datum/) {print substr($2,0,7)}}' | sort | uniq -c | awk -F " " -v None="" '{if($2 ~ /^$/)
+                                                                                                                                        {None=$1}
+                                                                                                                                     else
+                                                                                                                                        {print $2 ": " $1} } END {if(None>=1) {print "None: " None} }')
+	echo "$out"
+	>&2 echo "$invalidData"
+	exit 0
+}
+
+yearly_Function() {
+	out=$(echo "$READ_INPUT" | awk -F, '{if ($2 !~ /datum/ ) {print substr($2,0,4)}}' | sort | uniq -c | awk -F " " -v None="" '{if($2 ~ /^$/) 
+																	{None=$1}
+																     else
+																	{print $2 ": " $1} } END { if(None>=1) {print "None: " None} }')
+        echo "$out"
+        >&2 echo "$invalidData"
+        exit 0
+}
+
+countries_Function() {
+	out=$(echo "$READ_INPUT" | awk -F, '{if ($8 !~ /naka+|^$/) {print $8}}' | sort | uniq -c | awk -F " " '{print $2 ": " $1}')
+	echo "$out"
+        >&2 echo "$invalidData"
+        exit 0
+}
+
+districts_Function() {
+	out=$(echo "$READ_INPUT" | awk -F, '{if ($6 !~ /okres+/) {print $6}}' | sort | uniq -c | awk -F " " -v None="" '{
+														 if ($2 ~ /^$/ ) 
+															{None=$1}
+														 else
+															{print $2 ": " $1}
+														} END { print  "None: " None }')
+	echo "$out"
+        >&2 echo "$invalidData"
+        exit 0
+}
+regions_Function() {
+	out=$(echo "$READ_INPUT" | awk -F, '{if ($5 !~ /kraj+/) {print $5}}' | sort | uniq -c | awk -F " " -v None="" '{
+                                                                                                                 if ($2 ~ /^$/ )
+                                                                                                                        {None=$1}
+                                                                                                                 else
+                                                                                                                        {print $2 ": " $1}
+                                                                                                                } END { print  "None: " None }')
+        echo "$out"
+        >&2 echo "$invalidData"
+        exit 0
+}
+### End of Functions
+while getopts :a::b::g::s::h o
+do
+	case "$o" in
+		h) 
+			print_help
+			exit 0
+			;;
+		a)
+			if [ "$aFlag" = false ]
+			then
+				if [[ $OPTARG =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]] && date -d "$OPTARG" >/dev/null
+					then DATEAFTER="$OPTARG"
+						aFlag=true
+					else 
+						echo -e "\nERROR: Date is not valid! Must be YYYY-MM-DD\n" >&2
+						exit 1
+				fi
+			else
+				echo -e "\nERROR: you can't enter two times same filter!!\n" >&2
+				exit 1
+			fi
+			;;
+		b) 	
+			if [ "$bFlag" = false ] 
+			then
+				if [[ $OPTARG =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]] && date -d "$OPTARG" >/dev/null
+					then DATEBEFORE="$OPTARG"
+						bFlag=true
+					else
+						echo -e "\nERROR: Date is not valid! Must be YYYY-MM-DD\n" >&2
+						exit 1
+				fi
+			else
+				echo -e "\nERROR: you can't enter two times same filter!!\n" >&2
+				exit 1
+			fi
+			;;
+		g) 
+			if [ "$gFlag" = false ]
+			then
+				if [[ $OPTARG == 'M' || $OPTARG == 'Z' ]]
+				then
+					GENDER="$OPTARG"
+					gFlag=true
+				else
+					echo -e "\nERROR: Unknown gender. Can be only M or Z" >&2
+					exit 1
+				fi
+			else
+				echo -e "\nERROR: you can't enter two times same filter!!\n" >&2
+				exit 1
+			fi	
+			;;
+		s)
+			if [ "$sFlag" = false ]
+			then	
+				if [[ $OPTARG > 0 ]]
+				then 
+					WIDTH="$OPTARG"
+					sFlag=true
+				else
+					echo -e "\nERROR: Width must be positive interger\n" >&2
+					exit 1
+				fi
+			else 
+				echo -e "\nERROR: you can't enter two times same filter!!\n" >&2
+				exit 1
+			fi
+			;;
+		*)
+			print_help
+			echo -e "\n\nERROR: UNKNOWN FILTER OR FILTER WITHOUT ARGUMENT\n" >&2
+			exit 1
+			;;
+		esac
+done
+
+((OPTIND--))
+
+shift $OPTIND
+
+while [ "$#" -gt 0 ]; do
+	case "$1" in infected | merge | gender | age | daily | monthly | yearly | countries | districts | regions)
+		if [ $COMMANDFLAG == false ] 
+		then
+			COMMAND="$1"
+			COMMANDFLAG=true
+			shift	
+		else
+			echo -e "\nERROR: CAN BE APPENDED ONLY 1 COMMAND\n" >&2
+			exit -1
+		fi
+		;;
+	*.csv.gz)
+		GZIP_CSV_FILE="$1 $GZIP_CSV_FILE"
+		gzipFlag=true
+		shift
+		;;
+	*.csv.bz2)
+		BZIP_CSV_FILE="$1 $BZIP_CSV_FILE"
+		bzipFlag=true
+		shift
+		;;
+	*.csv)
+		CSV_FILE="$1 $CSV_FILE"
+		csvFlag=true
+		shift
+		;;
+	*)
+		echo -e "\nERROR: UNKNOWN COMMAND\n" >&2
+		exit -1
+		;;
+	esac
+done 
+
+extractFile
+getInvalidData
+
+#tut case of filters
+if [ "$aFlag" = true ]
+then
+	afterDate_Function
+fi
+
+if [ "$bFlag" = true ]
+then
+	beforeDate_Function
+fi
+
+if [ "$gFlag" = true ]
+then
+	genderFilter_Function
+fi
+
+if [ "$sFlag" = true ]
+then
+	sWidth_Function
+fi
+#konec case of filters
+
+
+
+if [ "$COMMANDFLAG" = true ] 
+then
+	case "$COMMAND" in
+		infected)
+			infected_Function
+			;;
+		merge)
+			merge_Function
+			;;
+		gender) 
+			gender_Function
+			;;
+		age)
+			age_Function
+			;;
+		daily) 
+			daily_Function
+			;;
+		monthly)
+			monthly_Function
+			;;
+		yearly)
+			yearly_Function
+			;;
+		countries)
+			countries_Function
+			;;
+		districts)
+			districts_Function
+			;;
+		regions)
+			regions_Function
+			;;
+	esac
+else
+	:
+fi
+
+merge_Function
+echo -e "$READ_INPUT"
+>&2 echo -e "$invalidData"
